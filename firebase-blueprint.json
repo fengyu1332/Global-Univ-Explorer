@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "UniversityData": {
+      "title": "University Data",
+      "description": "Represents a single university ranking entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "country": { "type": "string" },
+        "majorCategory": { "type": "string" },
+        "majorSpecific": { "type": "string" },
+        "year": { "type": "integer" },
+        "rankingSource": { "type": "string" },
+        "currentRank": { "type": "integer" },
+        "previousRank": { "type": "integer" },
+        "research": { "type": "number" },
+        "reputation": { "type": "number" },
+        "teaching": { "type": "number" },
+        "international": { "type": "number" },
+        "industry": { "type": "number" },
+        "roi": { "type": "number" },
+        "career": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "country", "majorCategory", "majorSpecific", "year", "rankingSource", "research", "reputation", "teaching", "international", "industry", "roi", "career"]
+    }
+  },
+  "firestore": {
+    "/universities/{universityId}": {
+      "schema": { "$ref": "#/entities/UniversityData" },
+      "description": "Stores all university rankings data."
+    }
+  }
+}

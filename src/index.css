@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&family=Manrope:wght@200..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Literata", serif;
+  --font-sans: "Manrope", sans-serif;
+
+  --color-surface: #fff8f5;
+  --color-surface-dim: #e9d6cc;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container: #feeadf;
+  --color-surface-container-high: #f8e4da;
+  --color-background: #FDFBF7; /* Paper cream */
+  --color-vellum: #F5F0E6; /* Vellum beige */
+  
+  --color-primary: #e67e22; /* Soft Terracotta */
+  --color-on-primary: #ffffff;
+  --color-primary-dark: #944a00;
+  
+  --color-chocolate: #4A3728; /* Deep Chocolate */
+  --color-chocolate-light: #705a49;
+  --color-purple: #8E44AD; /* Academic Purple */
+
+  --shadow-ambient: 0 20px 40px -10px rgba(74, 55, 40, 0.06);
+  --shadow-ambient-hover: 0 10px 30px -5px rgba(74, 55, 40, 0.1);
+
+  --radius-card: 24px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-chocolate);
+}
+
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body strong {
+  color: var(--color-chocolate);
+  font-weight: 700;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.25rem;
+}

@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Definition
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    // Admin Access: Currently the application allows any signed in user to modify standard university data
+    // but in reality we might want an admin list. For now, allow anybody signed in to write, and anyone to read.
+    // To restrict to real admin we'd use:
+    // function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    
+    // Validations:
+    function isValidUniversity(data) {
+      return data.keys().hasAll(['id', 'name', 'country', 'majorCategory', 'majorSpecific', 'year', 'rankingSource', 'research', 'reputation', 'teaching', 'international', 'industry', 'roi', 'career'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 256
+        && data.country is string && data.country.size() <= 128
+        && data.majorCategory is string && data.majorCategory.size() <= 128
+        && data.majorSpecific is string && data.majorSpecific.size() <= 128
+        && data.year is number
+        && data.rankingSource is string && data.rankingSource.size() <= 128
+        && data.research is number
+        && data.reputation is number
+        && data.teaching is number
+        && data.international is number
+        && data.industry is number
+        && data.roi is number
+        && data.career is number
+        && (data.get('currentRank', 0) is number)
+        && (data.get('previousRank', 0) is number)
+        && (data.get('createdAt', '') is string || data.get('createdAt', request.time) is timestamp)
+        && (data.get('updatedAt', '') is string || data.get('updatedAt', request.time) is timestamp);
+    }
+
+    match /universities/{universityId} {
+      // Allow public read
+      allow read: if true;
+
+      // Allow any user to create/update/delete for the sake of the demo
+      // In production, you would probably want to limit this to admins.
+      allow create: if isSignedIn()
+                      && isValidId(universityId)
+                      && isValidUniversity(incoming());
+                      
+      allow update: if isSignedIn()
+                      && isValidId(universityId)
+                      && isValidUniversity(incoming());
+
+      allow delete: if isSignedIn() && isValidId(universityId);
+    }
+    
+    match /tracking_events/{eventId} {
+      // Any client can push a tracking event anonymously
+      allow create: if true;
+      // Admin dashboard download requires reading
+      allow read: if isSignedIn();
+    }
+  }
+}
