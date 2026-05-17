@@ -19,9 +19,25 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const ALLOWED_ADMINS = ['sparksu249@gmail.com', 'fengyu1332@gmail.com'];
+
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        if (currentUser.email && ALLOWED_ADMINS.includes(currentUser.email)) {
+          setUser(currentUser);
+        } else {
+          try {
+            await signOut(auth);
+            setUser(null);
+            alert("该账号无管理员权限，无法登录。");
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      } else {
+        setUser(null);
+      }
     });
 
     return () => unsubscribeAuth();
@@ -121,8 +137,13 @@ export default function App() {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Login failed", e);
+      if (e.code === 'auth/unauthorized-domain') {
+        alert("登录失败：当前域名未授权。请前往 Firebase Console -> Authentication -> Settings -> Authorized domains 列表中添加您的网站域名 (例如: .onrender.com 或 .netlify.app)。");
+      } else {
+        alert("登录失败：" + (e.message || "未知错误"));
+      }
     }
   };
 
