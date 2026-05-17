@@ -2,5 +2,5 @@
   "name": "Global Univ Explorer",
   "description": "A smart tool to evaluate and match universities globally based on multiple dimensions like academic performance, ROI, career prospects, and safety.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,7 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { GoogleGenAI, Type } from '@google/genai';
 import { UniversityData } from '../types';
 import { Database, Upload, Trash2, Plus, RefreshCw, Download, Loader2, Table, Settings, Save, X, ArrowRight, BarChart2 } from 'lucide-react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
@@ -121,16 +120,18 @@ export default function AdminDashboard({ data, setData }: { data: UniversityData
     setAnalyzeProgress(`准备处理 ${rawData.length} 条数据...`);
     let allEntries: UniversityData[] = [];
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const CHUNK_SIZE = 30; // Reduced chunk size to prevent AI token limit truncation or dropping records
       
       for (let i = 0; i < rawData.length; i += CHUNK_SIZE) {
         const chunk = rawData.slice(i, i + CHUNK_SIZE);
         setAnalyzeProgress(`AI 处理中... (${i + 1} - ${Math.min(i + CHUNK_SIZE, rawData.length)} / ${rawData.length})`);
         
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `您现在是一个数据处理与高校咨询AI。请分析下方的原始榜单上传数据，并将其映射提炼为符合内部标准化字段的数组。
+        const response = await fetch('/api/generateContent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gemini-3-flash-preview',
+            contents: `您现在是一个数据处理与高校咨询AI。请分析下方的原始榜单上传数据，并将其映射提炼为符合内部标准化字段的数组。
           
           如果原始数据缺乏某些维度（如 research, reputation, teaching, international, industry, roi, career），请基于该大学的常见客观表现、或你所拥有的知识来进行合理估算填充（0-100分）。
           如果是纯文本或缺失字段，你也需要尽可能补全。
@@ -143,37 +144,41 @@ export default function AdminDashboard({ data, setData }: { data: UniversityData
           
           Raw Data: 
           ${JSON.stringify(chunk)}`,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  name: { type: Type.STRING },
-                  country: { type: Type.STRING },
-                  majorCategory: { type: Type.STRING },
-                  majorSpecific: { type: Type.STRING },
-                  year: { type: Type.INTEGER },
-                  rankingSource: { type: Type.STRING },
-                  currentRank: { type: Type.INTEGER },
-                  previousRank: { type: Type.INTEGER },
-                  research: { type: Type.NUMBER },
-                  reputation: { type: Type.NUMBER },
-                  teaching: { type: Type.NUMBER },
-                  international: { type: Type.NUMBER },
-                  industry: { type: Type.NUMBER },
-                  roi: { type: Type.NUMBER },
-                  career: { type: Type.NUMBER }
-                },
-                required: ["id", "name", "country", "majorCategory", "majorSpecific", "year", "rankingSource", "research", "reputation", "teaching", "international", "industry", "roi", "career"]
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING" },
+                    name: { type: "STRING" },
+                    country: { type: "STRING" },
+                    majorCategory: { type: "STRING" },
+                    majorSpecific: { type: "STRING" },
+                    year: { type: "INTEGER" },
+                    rankingSource: { type: "STRING" },
+                    currentRank: { type: "INTEGER" },
+                    previousRank: { type: "INTEGER" },
+                    research: { type: "NUMBER" },
+                    reputation: { type: "NUMBER" },
+                    teaching: { type: "NUMBER" },
+                    international: { type: "NUMBER" },
+                    industry: { type: "NUMBER" },
+                    roi: { type: "NUMBER" },
+                    career: { type: "NUMBER" }
+                  },
+                  required: ["id", "name", "country", "majorCategory", "majorSpecific", "year", "rankingSource", "research", "reputation", "teaching", "international", "industry", "roi", "career"]
+                }
               }
             }
-          }
+          })
         });
 
-        const resultText = response.text || "[]";
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to generate content');
+        
+        const resultText = data.text || "[]";
         let newEntries = JSON.parse(resultText) as UniversityData[];
         
         // Ensure absolutely unique IDs and sanitize characters

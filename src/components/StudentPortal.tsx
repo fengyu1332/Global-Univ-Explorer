@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { UniversityData } from '../types';
-import { Target, Filter, Sparkles, Info, Search, ChevronDown, Check, Loader2 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { Filter, Sparkles, Info, Search, ChevronDown, Check, Target, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const DIMENSIONS = [
@@ -107,7 +106,6 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
     setConsultantReview('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       let promptTemplate = localStorage.getItem('admin_ai_prompt');
       if (!promptTemplate) {
         promptTemplate = `你是一名经验丰富的专业留学顾问。请为学生介绍 {schoolName} (位于 {country}，专业领域: {majorCategory} / {majorSpecific})。
@@ -124,18 +122,24 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
         .replace(/{majorCategory}/g, selectedUniv.majorCategory || '')
         .replace(/{majorSpecific}/g, selectedUniv.majorSpecific || '');
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
+      const response = await fetch('/api/generateContent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          contents: prompt
+        })
       });
-
-      setConsultantReview(response.text || '暂无内容');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to generate review');
+      
+      setConsultantReview(data.text || '暂无内容');
       import('../lib/analytics').then(({ trackEvent }) => {
         trackEvent('ai_consultation', { schoolId: selectedUniv.id, schoolName: selectedUniv.name, promptLength: prompt.length });
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to generate review:", e);
-      setConsultantReview('获取顾问观点失败，请检查网络或刷新重试。');
+      setConsultantReview('获取顾问观点失败，请检查网络或刷新重试。' + (e.message ? ` (${e.message})` : ''));
     } finally {
       setIsReviewLoading(false);
     }

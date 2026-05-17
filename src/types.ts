@@ -7,6 +7,7 @@ export interface TrackingEvent {
 }
 
 export interface UniversityData {
+  id: string;
   name: string;
   country: string;
   majorCategory: string; // e.g., '工程技术', '自然科学', '商科'
