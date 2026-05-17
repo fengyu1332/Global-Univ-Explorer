@@ -10,16 +10,40 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json({ limit: '50mb' }));
+  app.set('trust proxy', true);
+
+  const usageCounters = new Map<string, { count: number, resetAt: number }>();
+  const WINDOW_MS = 24 * 60 * 60 * 1000;
+  const MAX_REQUESTS = 2;
 
   // API Route to proxy Gemini API calls
   app.post("/api/generateContent", async (req, res) => {
     try {
+      const { model, contents, usageType } = req.body;
+      
+      if (usageType === 'student_consultation') {
+        const ip = req.ip || req.socket.remoteAddress || 'unknown';
+        const now = Date.now();
+        const record = usageCounters.get(ip);
+        
+        if (record) {
+          if (now > record.resetAt) {
+            usageCounters.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+          } else if (record.count >= MAX_REQUESTS) {
+            return res.status(429).json({ error: "由于资源限制，同一IP地址24小时内最多只能使用2次AI解读功能，您的额度已用尽，请明天再来吧！" });
+          } else {
+            record.count += 1;
+          }
+        } else {
+          usageCounters.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+        }
+      }
+
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return res.status(500).json({ error: "GEMINI_API_KEY not set on server" });
       }
       const ai = new GoogleGenAI({ apiKey });
-      const { model, contents } = req.body;
       const response = await ai.models.generateContent({ model, contents });
       res.json(response);
     } catch (error: any) {

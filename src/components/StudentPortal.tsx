@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { UniversityData } from '../types';
-import { Filter, Sparkles, Info, Search, ChevronDown, Check, Target, Loader2 } from 'lucide-react';
+import { Filter, Sparkles, Info, Search, ChevronDown, Check, Target, Loader2, LayoutDashboard, BarChart2, FileText, MousePointerClick } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const DIMENSIONS = [
@@ -25,6 +25,7 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [consultantReview, setConsultantReview] = useState<string>('');
   const [isReviewLoading, setIsReviewLoading] = useState<boolean>(false);
   const startTimeRef = useRef<number>(Date.now());
@@ -34,6 +35,13 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
     import('../lib/analytics').then(({ trackEvent }) => {
       trackEvent('page_view', { path: '/student-portal' });
     });
+    
+    // Check if it's the first time visiting
+    const hasSeenTutorial = localStorage.getItem('has_seen_tutorial');
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+      localStorage.setItem('has_seen_tutorial', 'true');
+    }
   }, []);
 
   const processedData = useMemo(() => {
@@ -127,7 +135,8 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'gemini-2.5-flash',
-          contents: prompt
+          contents: prompt,
+          usageType: 'student_consultation'
         })
       });
       const data = await response.json();
@@ -162,6 +171,12 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
           <h2 className="font-serif text-xl font-bold flex items-center gap-2 text-chocolate">
             <Filter size={20} className="text-primary" /> 定制评估模型
           </h2>
+          <button 
+            onClick={() => setShowTutorial(true)} 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-bold"
+          >
+            <Info size={16} /> 使用入门
+          </button>
         </div>
         <div className="p-4 lg:p-6 flex flex-col lg:flex-row gap-6 lg:items-end flex-wrap overflow-visible">
           <div className="flex-1 min-w-[200px]">
@@ -344,18 +359,21 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
                   {/* 专家观点区块 */}
                   <div className="bg-surface-container-high rounded-[24px] border border-surface-dim p-6 relative overflow-hidden shadow-sm">
                      <div className="absolute top-0 left-0 w-1.5 h-full bg-purple"></div>
-                     <div className="font-bold flex items-center justify-between gap-2 mb-4 text-chocolate tracking-wide text-sm">
-                       <span className="flex items-center gap-2">
+                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                       <span className="font-bold flex items-center gap-2 text-chocolate tracking-wide text-sm">
                          <Info size={16} className="text-purple" /> 顾问观点
                        </span>
-                       <button 
-                         onClick={handleGenerateReview}
-                         disabled={isReviewLoading}
-                         className="flex items-center gap-1.5 px-3 py-1.5 bg-purple text-white hover:bg-purple/90 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
-                       >
-                         {isReviewLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                         {isReviewLoading ? '生成中...' : 'AI名校顾问讲解'}
-                       </button>
+                       <div className="flex items-center gap-3">
+                         <span className="text-xs text-chocolate-light bg-purple/10 text-purple px-2 py-1 rounded">为防止资源滥用，IP每24小时限用2次</span>
+                         <button 
+                           onClick={handleGenerateReview}
+                           disabled={isReviewLoading}
+                           className="flex items-center gap-1.5 px-3 py-1.5 bg-purple text-white hover:bg-purple/90 rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex-shrink-0"
+                         >
+                           {isReviewLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                           {isReviewLoading ? '生成中...' : '生成 AI 名校分析'}
+                         </button>
+                       </div>
                      </div>
                      <div className="text-chocolate-light text-sm leading-relaxed font-medium">
                        {isReviewLoading ? (
@@ -391,6 +409,152 @@ export default function StudentPortal({ data }: { data: UniversityData[] }) {
           )}
         </div>
       </div>
+      {/* Tutorial Modal */}
+      {showTutorial && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
+          <div className="bg-surface-container-lowest border border-surface-dim rounded-2xl shadow-ambient w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-surface-dim bg-surface-container-lowest">
+              <h3 className="font-serif text-xl font-bold flex items-center gap-2 text-chocolate">
+                <Target size={20} className="text-primary" /> 欢迎使用全球院校探索系统
+              </h3>
+              <button 
+                onClick={() => setShowTutorial(false)}
+                className="text-chocolate-light hover:text-chocolate hover:bg-surface-dim p-2 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto w-full md:px-8 space-y-8 flex-1">
+              <div>
+                <h4 className="font-bold text-chocolate mb-2 flex items-center gap-2 text-lg">系统目的</h4>
+                <p className="text-chocolate-light leading-relaxed text-sm">
+                  本系统旨在帮助学生、家长及教育工作者，基于多维度的客观数据（如学术研究、声誉、教学质量、跨国就业、投资回报率等），科学评估并筛选全球顶尖高校。同时，通过引入强大的 AI 留学顾问，为您生成深入浅出的选校分析报告。
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-chocolate mb-4 flex items-center gap-2 text-lg">如何操作？</h4>
+                
+                <div className="space-y-4">
+                  <div className="bg-white border border-surface-dim p-4 rounded-xl flex flex-col md:flex-row gap-6 items-center hover:shadow-sm transition-shadow">
+                    <div className="flex-1 text-left w-full">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">1</div>
+                        <p className="font-bold text-chocolate text-base">设定评估模型（顶部区域）</p>
+                      </div>
+                      <p className="text-chocolate-light text-sm leading-relaxed pl-8">
+                        在顶部的控制区中，选择您想要参考的排名基准（例如 QS、THE 等年份版本）、期望的留学目标国家，或者感兴趣的学科分类系统会自动从庞大的数据库中检索匹配的结果。
+                      </p>
+                    </div>
+                    <div className="w-full md:w-48 h-32 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center justify-center relative overflow-hidden flex-shrink-0">
+                      <div className="absolute top-4 left-4 right-4 bg-white shadow-sm p-2 rounded-md border border-blue-100 flex gap-2">
+                        <div className="h-2 w-12 bg-blue-200 rounded-full"></div>
+                        <div className="h-2 w-2 bg-blue-300 rounded-full"></div>
+                      </div>
+                      <div className="absolute top-12 left-4 right-4 bg-white shadow-sm p-2 rounded-md border border-blue-100 flex gap-2 mt-2">
+                        <div className="h-2 w-16 bg-blue-200 rounded-full"></div>
+                        <div className="flex-1"></div>
+                        <Search size={14} className="text-blue-300" />
+                      </div>
+                      <Filter size={40} className="text-blue-200 absolute -bottom-4 -right-4 opacity-50" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-surface-dim p-4 rounded-xl flex flex-col md:flex-row gap-6 items-center hover:shadow-sm transition-shadow">
+                    <div className="flex-1 text-left w-full">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">2</div>
+                        <p className="font-bold text-chocolate text-base">数据对比与排行（主区域左侧）</p>
+                      </div>
+                      <p className="text-chocolate-light text-sm leading-relaxed pl-8">
+                        根据您的筛选，系统将在左侧列出名录。专属的雷达图会直观呈现当前选中院校在各项核心指标上的实际表现，并在下方给出最终计算的综合实力分。
+                      </p>
+                    </div>
+                    <div className="w-full md:w-48 h-32 bg-orange-50/50 rounded-lg border border-orange-100 flex items-center justify-center relative overflow-hidden flex-shrink-0 gap-3">
+                      <div className="w-16 h-16 bg-white border border-orange-200 rounded-full flex items-center justify-center shadow-sm">
+                        <Target size={24} className="text-orange-300 opacity-80" />
+                      </div>
+                      <div className="w-20 pl-2 border-l border-orange-200 flex flex-col gap-2">
+                        <div className="h-2 w-full bg-orange-200 rounded-full"></div>
+                        <div className="h-2 w-4/5 bg-orange-200 rounded-full"></div>
+                        <div className="h-2 w-5/6 bg-orange-200 rounded-full"></div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <MousePointerClick size={12} className="text-orange-400" />
+                          <div className="h-2 w-8 bg-orange-300 rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-surface-dim p-4 rounded-xl flex flex-col md:flex-row gap-6 items-center hover:shadow-sm transition-shadow">
+                    <div className="flex-1 text-left w-full">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">3</div>
+                        <p className="font-bold text-chocolate text-base">阅读详细档案（主区域右侧）</p>
+                      </div>
+                      <p className="text-chocolate-light text-sm leading-relaxed pl-8">
+                        点击左侧列表中的学校，右侧面板将显示该校的数据档案，包括往年排名趋势、学费评估、就业粘性等关键信息，全面了解其实力变迁。
+                      </p>
+                    </div>
+                    <div className="w-full md:w-48 h-32 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center justify-center relative overflow-hidden flex-shrink-0">
+                      <div className="bg-white w-28 h-24 rounded shadow-sm border border-purple-100 p-2 flex flex-col gap-2">
+                         <div className="flex gap-2">
+                            <div className="w-6 h-6 bg-purple-100 rounded-md"></div>
+                            <div className="flex-1 flex flex-col gap-1 pt-1">
+                              <div className="h-1.5 w-full bg-purple-200 rounded-full"></div>
+                              <div className="h-1.5 w-2/3 bg-purple-100 rounded-full"></div>
+                            </div>
+                         </div>
+                         <div className="h-[1px] w-full bg-purple-50"></div>
+                         <div className="flex flex-col gap-1.5">
+                           <div className="flex justify-between items-center"><div className="h-1 w-8 bg-purple-100"></div><div className="h-1 w-4 bg-purple-200"></div></div>
+                           <div className="flex justify-between items-center"><div className="h-1 w-10 bg-purple-100"></div><div className="h-1 w-6 bg-purple-200"></div></div>
+                           <div className="flex justify-between items-center"><div className="h-1 w-7 bg-purple-100"></div><div className="h-1 w-3 bg-purple-200"></div></div>
+                         </div>
+                      </div>
+                      <BarChart2 size={24} className="text-purple-300 absolute bottom-2 right-2 opacity-50" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-surface-dim p-4 rounded-xl flex flex-col md:flex-row gap-6 items-center hover:shadow-sm transition-shadow">
+                    <div className="flex-1 text-left w-full">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-primary/10 text-primary w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs">4</div>
+                        <p className="font-bold text-chocolate text-base">获取 AI 顾问解析（右侧底部）</p>
+                      </div>
+                      <p className="text-chocolate-light text-sm leading-relaxed pl-8">
+                        点击「生成 AI 名校分析报告」按钮，系统内置的专家模型将根据该学校的各类细分数据，为您进行专业的综合点评和申请建议。
+                      </p>
+                    </div>
+                    <div className="w-full md:w-48 h-32 bg-green-50/50 rounded-lg border border-green-100 flex items-center justify-center relative overflow-hidden flex-shrink-0">
+                       <div className="bg-white px-3 py-2 rounded-lg border border-green-200 shadow-sm flex items-start gap-2 relative z-10 w-36">
+                         <Sparkles size={14} className="text-green-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                         <div className="flex flex-col gap-1.5 w-full pt-1">
+                           <div className="h-1.5 w-full bg-green-200 rounded-full"></div>
+                           <div className="h-1.5 w-5/6 bg-green-200 rounded-full"></div>
+                           <div className="h-1.5 w-4/5 bg-green-200 rounded-full"></div>
+                           <div className="h-1.5 w-1/2 bg-green-100 rounded-full"></div>
+                         </div>
+                       </div>
+                       <Sparkles size={40} className="text-green-200 absolute -bottom-2 -left-2 opacity-50" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-surface-dim bg-surface-container flex justify-end">
+              <button 
+                onClick={() => setShowTutorial(false)}
+                className="bg-primary hover:bg-primary-hover text-surface-container-lowest px-6 py-2 rounded-xl font-bold transition-all w-full sm:w-auto"
+              >
+                我知道了，开始探索
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
